@@ -1,6 +1,9 @@
 const automator = require('miniprogram-automator');
 const config = require('../../config');
 const logger = require('../utils/logger');
+const { exec } = require('child_process');
+const util = require('util');
+const execAsync = util.promisify(exec);
 
 class Automator {
     constructor() {
@@ -8,16 +11,44 @@ class Automator {
         this.page = null;
     }
 
-    // 初始化自动化环境
+    /**
+     * 初始化小程序自动化环境（命令行方式）
+     */
     async init() {
-        logger.info('初始化微信小程序自动化环境...');
-        this.instance = await automator.launch({
-            projectPath: config.projectPath,
-            cliPath: config.cliPath,
-            port: config.port
-        });
-        logger.success('自动化环境初始化完成');
-        return this.instance;
+        try {
+            // 1. 检查微信开发者工具是否已启动，若已启动则关闭
+            console.log('检查并关闭已运行的微信开发者工具...');
+            try {
+                // Windows系统关闭命令（根据实际系统调整）
+                await execAsync('taskkill /f /im 微信web开发者工具.exe', { windowsHide: true });
+            } catch (err) {
+                // 未运行时会报错，属于正常情况
+                console.log('微信开发者工具未在运行');
+            }
+
+            // 2. 命令行启动微信开发者工具并开启自动化端口
+            console.log('启动微信开发者工具...');
+            const startCommand = `"${this.config.cliPath}" open --project "${this.config.projectPath}" --port ${this.config.port}`;
+            console.log('执行命令:', startCommand);
+            await execAsync(startCommand, { windowsHide: true });
+
+            // 3. 等待开发者工具启动完成（根据实际情况调整等待时间）
+            console.log('等待开发者工具初始化...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+
+            // 4. 连接小程序自动化环境
+            console.log('连接小程序自动化环境...');
+            this.miniprogram = await automator.connect({
+                projectPath: this.config.projectPath,
+                port: this.config.port
+            });
+
+            console.log('小程序自动化环境初始化成功');
+            return this.miniprogram;
+        } catch (error) {
+            console.error('小程序自动化环境初始化失败:', error.message);
+            throw error;
+        }
     }
 
     // 打开指定页面
