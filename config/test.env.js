@@ -3,7 +3,7 @@
 
 module.exports = {
     // 小程序项目根路径（必填）
-    PROJECT_PATH: 'D:\\gitlab\\miniprogram\\app.json',
+    PROJECT_PATH: 'D:\\gitlab\\miniprogram',
 
     // 微信开发者工具CLI路径（根据系统类型修改）
     // Windows默认路径示例：'C:\\Program Files (x86)\\Tencent\\微信web开发者工具\\cli.bat'
@@ -11,7 +11,7 @@ module.exports = {
     CLI_PATH: 'E:\\微信web开发者工具\\cli.bat',
 
     // 开发者工具端口（默认9420，需与开发者工具设置一致）
-    PORT: 26042,
+    PORT: 15475,
 
     // 测试超时时间（毫秒）
     TIMEOUT: 15000,

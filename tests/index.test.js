@@ -24,7 +24,7 @@ describe('首页测试', function() {
         expect(result).to.exist; // 验证搜索结果存在
     });
 
-    after(async () => {
-        await helper.close();
-    });
+    // after(async () => {
+    //     await helper.close();
+    // });
 });

@@ -1,6 +1,8 @@
 const automator = require('miniprogram-automator');
 const { execSync } = require('child_process');
 const fs = require('fs');
+const path = require('path');
+const config = require('../../config');
 
 class AutomatorHelper {
     constructor() {
@@ -13,15 +15,34 @@ class AutomatorHelper {
     // 加载配置，确保配置存在
     loadConfig() {
         // 基础配置
-        const baseConfig = {
-            projectPath: 'D:\\gitlab\\miniprogram', // 例如: 'C:\\projects\\my-miniprogram'
-            cliPath: 'E:\\微信web开发者工具\\cli.bat', // 自动获取默认路径
-            port: 44606
-        };
+        const baseConfig = config;
 
         // 可以在这里添加从配置文件加载的逻辑
         return baseConfig;
     }
+
+    /**
+     * 从微信开发者工具配置文件获取当前服务端口
+     */
+    getDeveloperToolPort() {
+        // Windows配置文件路径（根据实际系统修改）
+        const configPath = path.join(
+            process.env.APPDATA,
+            'Tencent',
+            '微信web开发者工具',
+            'Default',
+            'config.json'
+        );
+
+        try {
+            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            return config.serverPort; // 默认端口作为 fallback
+        } catch (error) {
+            console.warn('获取端口失败，使用默认端口', error.message);
+            return 9420;
+        }
+    }
+
 
     // 检查配置是否完整
     validateConfig() {
@@ -73,20 +94,31 @@ class AutomatorHelper {
 
     // 初始化自动化环境
     async init() {
-        try {
-            this.validateConfig();
-            await this.closeDevTools();
-            await this.startDevTools();
+        this.validateConfig();
+        // await this.closeDevTools();
+        // await this.startDevTools();
 
-            this.miniprogram = await automator.connect({
-                projectPath: this.config.projectPath,
-                port: this.config.port
-            });
+        console.log(this.config)
 
-            return this.miniprogram;
-        } catch (e) {
-            throw new Error(`小程序自动化环境初始化失败: ${e.message}`);
-        }
+        // 启动开发者工具后等待3秒再连接（避免工具未就绪）
+        await automator.launch({
+            cliPath: this.config.cliPath,
+            projectPath: this.config.projectPath,
+            port: this.config.port
+        });
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 增加等待时间
+
+        this.miniprogram = await automator.connect({
+            projectPath: this.config.projectPath,
+            port: this.config.port
+        });
+
+        return this.miniprogram;
+        // try {
+        //
+        // } catch (e) {
+        //     throw new Error(`小程序自动化环境初始化失败: ${e.message}`);
+        // }
     }
 
     // 其他辅助方法...
