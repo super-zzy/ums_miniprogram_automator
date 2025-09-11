@@ -108,7 +108,7 @@ class AutomatorHelper {
 
         try {
             // this.validateConfig();
-            await this.closeDevTools();
+            // await this.closeDevTools();
             // await this.startDevTools();
 
             // 1. 构建命令行：cli auto --project [路径] --auto-port [端口]
