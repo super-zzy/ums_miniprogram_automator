@@ -1,4 +1,4 @@
-const helper = require('../utils/automatorHelper');
+const helper = require('../../utils/automatorHelper');
 const { expect } = require('chai');
 
 // 首页测试套件

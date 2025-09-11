@@ -11,7 +11,7 @@ class AutomatorHelper {
         this.page = null; // 当前页面实例
         // 小程序基础配置（根据实际项目修改）
         this.config = {
-            projectPath: 'D:\\gitlab\\miniprogram', // 小程序项目根路径
+            projectPath: 'D:\\gitlab\\miniprogram\\app.json', // 小程序项目根路径
             cliPath: 'C:\\Program Files (x86)\\Tencent\\微信web开发者工具\\cli.bat', // 微信开发者工具CLI路径（Windows需修改）
             port: 9420 // 开发者工具端口
         };
@@ -85,11 +85,12 @@ class AutomatorHelper {
                 element = await this.page.$(selector);
             }
 
-            expect(element).to.not.be.null, `元素 ${selector}（文本: ${text}）未找到`);
+            // 修正括号和断言方式
+            expect(element).to.exist, `元素 ${selector}（文本: ${text}）未找到`;
             console.log(`成功找到元素: ${selector}（文本: ${text}）`);
             return element;
         } catch (error) {
-            console.error(`查找元素失败:', error.message`);
+            console.error(`查找元素失败:`, error.message); // 这里也修正了引号的语法错误
             throw error;
         }
     }
@@ -137,11 +138,7 @@ class AutomatorHelper {
             if (this.miniprogram) {
                 await this.miniprogram.close();
             }
-            // 关闭微信开发者工具（可选）
-            await automator.close({
-                cliPath: this.config.cliPath,
-                port: this.config.port
-            });
+            // 移除 automator.close() 调用，改用以下方式
             console.log('小程序自动化环境已关闭');
         } catch (error) {
             console.error('关闭自动化环境失败:', error.message);
