@@ -2,7 +2,10 @@ const automator = require('miniprogram-automator');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const config = require('../../config');
+const config = require('../../config')
+const { exec } = require('child_process'); // 引入child_process模块
+const { promisify } = require('util');
+const execAsync = promisify(exec); // 转为Promise形式，方便async/await使用
 
 class AutomatorHelper {
     constructor() {
@@ -15,7 +18,7 @@ class AutomatorHelper {
     // 加载配置，确保配置存在
     loadConfig() {
         // 基础配置
-        const baseConfig = config;
+        const baseConfig = config
 
         // 可以在这里添加从配置文件加载的逻辑
         return baseConfig;
@@ -79,14 +82,14 @@ class AutomatorHelper {
     async startDevTools() {
         try {
             console.log('启动微信开发者工具...');
-            this.validateConfig();
+            // this.validateConfig();
 
             // 使用配置的CLI路径启动
             execSync(`${this.config.cliPath} --project ${this.config.projectPath} --auto ${this.config.port}`, {
                 stdio: 'ignore',
                 detached: true
             });
-            await new Promise(resolve => setTimeout(resolve, 3000)); // 等待启动完成
+            await new Promise(resolve => setTimeout(resolve, 30000)); // 等待启动完成
         } catch (e) {
             throw new Error(`启动微信开发者工具失败: ${e.message}`);
         }
@@ -94,31 +97,63 @@ class AutomatorHelper {
 
     // 初始化自动化环境
     async init() {
-        this.validateConfig();
-        // await this.closeDevTools();
-        // await this.startDevTools();
+        const maxRetries = 5; // 最大重试次数
+        const retryDelay = 3000; // 重试间隔（毫秒）
+        let retryCount = 0;
 
-        console.log(this.config)
+        // 先关闭旧连接
+        if (this.miniprogram) {
+            await this.miniprogram.close().catch(() => {});
+        }
 
-        // 启动开发者工具后等待3秒再连接（避免工具未就绪）
-        await automator.launch({
-            cliPath: this.config.cliPath,
-            projectPath: this.config.projectPath,
-            port: this.config.port
-        });
-        await new Promise(resolve => setTimeout(resolve, 3000)); // 增加等待时间
+        try {
+            // this.validateConfig();
+            await this.closeDevTools();
+            // await this.startDevTools();
 
-        this.miniprogram = await automator.connect({
-            projectPath: this.config.projectPath,
-            port: this.config.port
-        });
+            // 1. 构建命令行：cli auto --project [路径] --auto-port [端口]
+            const command = `"${this.config.cliPath}" auto --project "${this.config.projectPath}" --auto-port ${this.config.port}`;
+            console.log('执行启动命令:', command);
 
-        return this.miniprogram;
-        // try {
-        //
-        // } catch (e) {
-        //     throw new Error(`小程序自动化环境初始化失败: ${e.message}`);
-        // }
+            // 2. 执行命令行（超时时间设为10秒）
+            const { stdout, stderr } = await execAsync(command, { timeout: 10000 });
+
+            // 3. 处理命令输出
+            if (stderr) {
+                console.warn('命令执行警告:', stderr);
+            }
+            console.log('开发者工具启动成功:', stdout);
+
+
+            // 重试连接逻辑
+            while (retryCount < maxRetries) {
+                const currentAttempt = retryCount + 1; // 将变量定义在循环内，确保try/catch都能访问
+                try {
+                    console.log(`正在尝试第 ${currentAttempt}/${maxRetries} 次连接...`);
+                    // 连接小程序（使用wsEndpoint）
+                    this.miniprogram = await automator.connect({
+                        wsEndpoint: this.config.wsEndpoint
+                    });
+
+                    console.log('小程序自动化环境初始化成功');
+                    return this.miniprogram;
+
+                } catch (connectError) {
+                    retryCount++;
+                    // 如果达到最大重试次数则抛出错误
+                    if (retryCount >= maxRetries) {
+                        console.error(`超过最大重试次数(${maxRetries})，连接失败:`, connectError.message);
+                        throw connectError;
+                    }
+
+                    // 否则等待延迟后继续重试
+                    console.log(`第 ${currentAttempt} 次连接失败，${retryDelay / 1000}秒后重试...`);
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
+                }
+            }
+        } catch (e) {
+            throw new Error(`小程序自动化环境初始化失败: ${e.message}`);
+        }
     }
 
     // 其他辅助方法...
