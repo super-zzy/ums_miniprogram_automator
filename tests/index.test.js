@@ -1,6 +1,6 @@
 const { expect } = require('chai');
-const automator = require('../src/automator');
-const IndexPage = require('../src/pages/indexPage');
+const helper = require('../src/utils/automatorHelper'); // 根据实际路径调整
+// const IndexPage = require('../src/pages/indexPage');
 const logger = require('../src/utils/logger');
 
 describe('首页测试', function() {
@@ -8,8 +8,8 @@ describe('首页测试', function() {
     let indexPage;
 
     before(async () => {
-        await automator.init();
-        const page = await automator.openPage('pages/index/index');
+        await helper.init();
+        const page = await helper.openPage('pages/index/index');
         indexPage = new IndexPage(page);
     });
 
@@ -25,6 +25,6 @@ describe('首页测试', function() {
     });
 
     after(async () => {
-        await automator.close();
+        await helper.close();
     });
 });
